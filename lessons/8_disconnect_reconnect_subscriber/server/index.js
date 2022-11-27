@@ -27,9 +27,14 @@ function handleLinePublish({ connection, line }) {
   .run(connection);
 }
 
-function subscribeToDrawingLines({ client, connection, drawingId}) {
+function subscribeToDrawingLines({ client, connection, drawingId, from}) {
+  let query = r.row('drawingId').eq(drawingId);
+  if (from) {
+    query = query.and(r.row('timestamp').ge(new Date(from)));
+  }
+
   return r.table('lines')
-  .filter(r.row('drawingId').eq(drawingId))
+  .filter(query)
   .changes({ include_initial: true, include_types: true })
   .run(connection)
   .then((cursor) => {
@@ -57,11 +62,12 @@ r.connect({
       connection,
     }));
 
-    client.on('subscribeToDrawingLines', (drawingId) => {
+    client.on('subscribeToDrawingLines', ({drawingId, from}) => {
       subscribeToDrawingLines({
         client,
         connection,
         drawingId,
+        from,
       });
     });
   });
